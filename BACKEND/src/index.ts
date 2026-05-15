@@ -1,25 +1,32 @@
 import express from "express";
-import apiRoutes from "./routes/api.routes";
-import { requestLogger } from "./middlewares/logger.middleware";
-import { errorHandler, ApiError } from "./middlewares/error.middleware";
+import { migrate } from "./db/migrate";
+import requestsRoutes from "./routes/requests.routes";
+// ... імпорт роутів та errorHandler
 
 const app = express();
+app.use(express.json());
+app.use("/api/checkout-requests", requestsRoutes);
+
+// Підключення твоїх роутів
+// app.use("/api/checkout-requests", requestsRoutes);
+
+// app.use(errorHandler);
+
 const PORT = 3000;
 
-app.use(express.json());
-app.use(requestLogger);
-app.use("/api", apiRoutes);
+async function bootstrap() {
+  await migrate(); 
 
-app.use((req, res, next) => {
-  next(new ApiError(404, "NOT_FOUND", `Route ${req.method} ${req.url} not found`));
-});
-
-app.use(errorHandler);
-
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`API Server started on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+      console.log(`API Server started on http://localhost:${PORT}`);
+    });
+  }
 }
+
+bootstrap().catch((err) => {
+  console.error("Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;
